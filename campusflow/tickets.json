@@ -1,0 +1,10 @@
+{
+    "ID": "2Voig966",
+    "Title": "ac malfunction",
+    "Category": "Facility",
+    "Urgency": "high",
+    "Affected_users": 13,
+    "Priority": "critical",
+    "Status": "open",
+    "Assigned_to": null
+}
