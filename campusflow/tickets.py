@@ -44,27 +44,36 @@ def calculate_priority(urgency: str, affected_users: int) -> str:
     else:
         priority = "low"
         return priority
-    
-def create_ticket() -> dict:
-    ticket_id = "".join(random.choices(string.ascii_letters+string.digits, k=8))
-    title = validate_title()
-    category =validate_category()
-    urgency = validate_urgency()
-    affected_users = validate_affected_users()
-    priority = calculate_priority(urgency, affected_users)
 
-    global ticket_dict
-    ticket_dict = {
-        "ID":ticket_id,
-        "Title": title,
-        "Category": category,
-        "Urgency": urgency,
-        "Affected_users": affected_users,
-        "Priority": priority,
-        "Status": "open",
-        "Assigned_to": None,
-    }
-    with open("tickets.json", "w") as f:
-        json.dump(ticket_dict, f, indent=4)
-    return ticket_dict
+while True:
+    """
+    =========================
+        CAMPUS WORKFLOW
+    =========================
+        1. CREATE TICKET
+        2. 
+    """   
+    def create_ticket() -> dict:
+        ticket_id = "".join(random.choices(string.ascii_letters+string.digits, k=8))
+        title = validate_title()
+        category =validate_category()
+        urgency = validate_urgency()
+        affected_users = validate_affected_users()
+        priority = calculate_priority(urgency, affected_users)
+
+        global ticket_dict
+        ticket_dict = {
+            "ID":ticket_id,
+            "Title": title,
+            "Category": category,
+            "Urgency": urgency,
+            "Affected_users": affected_users,
+            "Priority": priority,
+            "Status": "open",
+            "Assigned_to": None,
+        }
+        with open("tickets.json", "w") as f:
+            json.dump(ticket_dict, f, indent=4)
+        return ticket_dict
+    
 print(create_ticket())
