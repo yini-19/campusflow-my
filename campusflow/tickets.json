@@ -1,10 +1,22 @@
-{
-    "ID": "X4Ige3E0",
-    "Title": "ac malfunction",
-    "Category": "Facility",
-    "Urgency": "high",
-    "Affected_users": 10,
-    "Priority": "critical",
-    "Status": "open",
-    "Assigned_to": null
-}
+[
+    {
+        "ID": "1ZAfqFxB",
+        "Title": "bad network",
+        "Category": "Network",
+        "Urgency": "high",
+        "Affected_users": 40,
+        "Priority": "critical",
+        "Status": "open",
+        "Assigned_to": null
+    },
+    {
+        "ID": "Hm2kAg9E",
+        "Title": "Ac malfunction",
+        "Category": "Facility",
+        "Urgency": "high",
+        "Affected_users": 30,
+        "Priority": "critical",
+        "Status": "open",
+        "Assigned_to": null
+    }
+]
