@@ -1,54 +1,70 @@
-import random
-import string
+
 import json
 import os
 
 ticket_dict = {}
+FILENAME = "tickets.json"
+
+allowed_categories = ("Network", "Hardware", "Software", "Other")
+allowed_urgencies = ("low", "medium", "high")
+
+
 
 def validate_title() -> str:
-    title = input("Ticket title: ").strip()
-    if not title:
+    while True:
+        title = input("Ticket title: ").strip()
+        if title:
+            return title
         print("Title field must not be empty")
-    return title
+
 
 def validate_category() -> str:
-    try:
-        category = input("Select category(Network, Software, Hardware, Facility, Other): ").capitalize()
-    except ValueError:
-        print("unsoppurted category: field cannot be empty")
-    return category
+    while True:
+        category = input(
+            "Select category (Network, Software, Hardware, Other): "
+        ).strip().capitalize()
+
+        if category in allowed_categories:
+            return category
+        print("Unsupported category. Please try again.")
+
 
 def validate_urgency() -> str:
-    try:
-        urgency  = input("Urgency level of complaint(high, medium or low): ").lower()
-    except ValueError:
-        print("field cannot be empty")
-    return urgency
+    while True:
+        urgency = input(
+            "Urgency level (high, medium or low): "
+        ).strip().lower()
+
+        if urgency in allowed_urgencies:
+            return urgency
+        print("Invalid urgency. Enter low, medium, or high.")
+
 
 def validate_affected_users() -> int:
-    affected_users = input("Number of affected users: ")
-    if affected_users.isdigit() and int(affected_users) > 0:
-        return int(affected_users)
-    else:
-        raise ValueError("Entry must be a positive integer and must be greater than 0")
-        
+    while True:
+        affected_users = input(
+            "Number of affected users: "
+        ).strip()
+
+        if affected_users.isdigit() and int(affected_users) > 0:
+            return int(affected_users)
+
+        print("Entry must be a positive integer greater than 0")
+
+
 def calculate_priority(urgency: str, affected_users: int) -> str:
     if urgency == "high" and affected_users >= 10:
-        priority = "critical"
-        return priority
+        return "critical"
     elif urgency == "high" or affected_users >= 10:
-        priority = "high"
-        return priority
+        return "high"
     elif urgency == "medium" or affected_users >= 3:
-        priority = "medium"
-        return priority
+        return "medium"
     else:
-        priority = "low"
-        return priority
+        return "low"
 
 
 def save_ticket(ticket: dict):
-    filename = "tickets.json"
+    filename = FILENAME
 
     if os.path.exists(filename):
         with open(filename, "r") as f:
@@ -57,24 +73,44 @@ def save_ticket(ticket: dict):
             if isinstance(all_tickets, dict):
                 all_tickets = [all_tickets]
     else:
-        all_tickets = [] 
-    
+        all_tickets = []
+
     all_tickets.append(ticket)
-    
+
     with open(filename, "w") as f:
         json.dump(all_tickets, f, indent=4)
 
+
+
 def create_ticket() -> dict:
-        ticket_id = "".join(random.choices(string.ascii_letters+string.digits, k=8))
+    global ticket_dict
+
+    try:
+        filename = FILENAME
+
+        if os.path.exists(filename):
+            with open(filename, "r") as f:
+                tickets = json.load(f)
+
+            if isinstance(tickets, dict):
+                tickets = [tickets]
+        else:
+            tickets = []
+
+        last_num = max(
+            (int(ticket["ID"][1:]) for ticket in tickets),
+            default=0
+        )
+        ticket_id = f"T{last_num + 1:03d}"
+
         title = validate_title()
-        category =validate_category()
+        category = validate_category()
         urgency = validate_urgency()
         affected_users = validate_affected_users()
         priority = calculate_priority(urgency, affected_users)
 
-        global ticket_dict
         ticket_dict = {
-            "ID":ticket_id,
+            "ID": ticket_id,
             "Title": title,
             "Category": category,
             "Urgency": urgency,
@@ -83,59 +119,59 @@ def create_ticket() -> dict:
             "Status": "open",
             "Assigned_to": None,
         }
-        
+
         save_ticket(ticket_dict)
 
         print("Processing ticket...")
         print("Ticket created")
         return ticket_dict
 
+    except ValueError as error:
+        print(f"Error: {error}")
+        return {}
+
+
 def list_tickets():
-    all_tickets = []
-    filename = "tickets.json"
+    filename = FILENAME
+
     if os.path.exists(filename):
         with open(filename, "r") as f:
             all_tickets = json.load(f)
-        
+
+        if isinstance(all_tickets, dict):
+            all_tickets = [all_tickets]
+
         for ticket in all_tickets:
-            #print(ticket)
             for key, value in ticket.items():
                 print(f"{key}: {value}")
             print()
     else:
         print("No tickets found.")
 
+
 def view_ticket():
-    ticket_id = input("input ticket ID: ")
-    all_tickets = []
-    filename = "tickets.json"
+    ticket_id = input("Input ticket ID: ").strip().upper()
+    filename = FILENAME
+
     if os.path.exists(filename):
         with open(filename, "r") as f:
             all_tickets = json.load(f)
-        
+
+        if isinstance(all_tickets, dict):
+            all_tickets = [all_tickets]
+
         for ticket in all_tickets:
             if ticket["ID"] == ticket_id:
                 for key, value in ticket.items():
                     print(f"{key}: {value}")
-            print()
-            
+                return
+
+        print("Ticket not found.")
     else:
         print("No tickets found.")
-    return
 
-def assign_ticket():
-    return
 
-def workflow_status():
-    return
-
-def reports():
-    return
-
-def show_qeueu():
-    return
-
-while True:
+def display_menu():
     print("""
     =========================
         CAMPUS WORKFLOW
@@ -144,31 +180,8 @@ while True:
         2. LIST ALL TICKETS
         3. VIEW TICKET
         4. ASSIGN TICKET TO STAFF
-        5. STATUS(WORKFLOW)
+        5. STATUS (WORKFLOW)
         6. WORK QUEUE
         7. REPORTS
         8. EXIT
-    """ )
-    choice = input("Select action: ").strip()
-
-    if choice == "1":
-        create_ticket()
-    elif choice == "2":
-        list_tickets()
-    elif choice == "3":
-        view_ticket()
-    elif choice == "4":
-        assign_ticket()
-    elif choice == "4":
-         workflow_status()
-    elif choice == "6":
-         show_qeueu()
-    elif choice == "7":
-         reports()
-    elif choice == "8":
-        print("Good Bye!")
-        break
-    else:
-        print("invalid choice, between options 1 to 6")
-
-
+    """)
