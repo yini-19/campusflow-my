@@ -81,107 +81,54 @@ def save_ticket(ticket: dict):
         json.dump(all_tickets, f, indent=4)
 
 
+def create_ticket(tickets: list[dict]) -> dict:
+    last_num = max(
+        (int(ticket["id"][1:]) for ticket in tickets),
+        default=0,
+    )
 
-def create_ticket() -> dict:
-    global ticket_dict
+    ticket_id = f"T{last_num + 1:03d}"
 
-    try:
-        filename = FILENAME
+    ticket = {
+        "id": ticket_id,
+        "title": validate_title(),
+        "category": validate_category(),
+        "urgency": validate_urgency(),
+        "affected_users": validate_affected_users(),
+        "priority": "",
+        "status": "open",
+        "assigned_to": None,
+    }
 
-        if os.path.exists(filename):
-            with open(filename, "r") as f:
-                tickets = json.load(f)
+    ticket["priority"] = calculate_priority(
+        ticket["urgency"],
+        ticket["affected_users"],
+    )
 
-            if isinstance(tickets, dict):
-                tickets = [tickets]
-        else:
-            tickets = []
+    tickets.append(ticket)
 
-        last_num = max(
-            (int(ticket["ID"][1:]) for ticket in tickets),
-            default=0
-        )
-        ticket_id = f"T{last_num + 1:03d}"
-
-        title = validate_title()
-        category = validate_category()
-        urgency = validate_urgency()
-        affected_users = validate_affected_users()
-        priority = calculate_priority(urgency, affected_users)
-
-        ticket_dict = {
-            "ID": ticket_id,
-            "Title": title,
-            "Category": category,
-            "Urgency": urgency,
-            "Affected_users": affected_users,
-            "Priority": priority,
-            "Status": "open",
-            "Assigned_to": None,
-        }
-
-        save_ticket(ticket_dict)
-
-        print("Processing ticket...")
-        print("Ticket created")
-        return ticket_dict
-
-    except ValueError as error:
-        print(f"Error: {error}")
-        return {}
+    print(f"Ticket {ticket_id} created successfully.")
+    return ticket
 
 
-def list_tickets():
-    filename = FILENAME
+def list_tickets(tickets: list[dict]) -> None:
+    if not tickets:
+        print("No tickets found.")
+        return
 
-    if os.path.exists(filename):
-        with open(filename, "r") as f:
-            all_tickets = json.load(f)
+    for ticket in tickets:
+        for key, value in ticket.items():
+            print(f"{key}: {value}")
+        print()
 
-        if isinstance(all_tickets, dict):
-            all_tickets = [all_tickets]
 
-        for ticket in all_tickets:
+def view_ticket(tickets: list[dict]) -> None:
+    ticket_id = input("Input ticket ID: ").strip().upper()
+
+    for ticket in tickets:
+        if ticket["id"] == ticket_id:
             for key, value in ticket.items():
                 print(f"{key}: {value}")
-            print()
-    else:
-        print("No tickets found.")
+            return
 
-
-def view_ticket():
-    ticket_id = input("Input ticket ID: ").strip().upper()
-    filename = FILENAME
-
-    if os.path.exists(filename):
-        with open(filename, "r") as f:
-            all_tickets = json.load(f)
-
-        if isinstance(all_tickets, dict):
-            all_tickets = [all_tickets]
-
-        for ticket in all_tickets:
-            if ticket["ID"] == ticket_id:
-                for key, value in ticket.items():
-                    print(f"{key}: {value}")
-                return
-
-        print("Ticket not found.")
-    else:
-        print("No tickets found.")
-
-
-def display_menu():
-    print("""
-    =========================
-        CAMPUS WORKFLOW
-    =========================
-        1. CREATE TICKET
-        2. LIST ALL TICKETS
-        3. VIEW TICKET
-        4. ASSIGN TICKET TO STAFF
-        5. STATUS (WORKFLOW)
-        6. WORK QUEUE
-        7. REPORTS
-        8. EXIT
-    """)
+    print("Ticket not found.")

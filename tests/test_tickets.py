@@ -1,245 +1,170 @@
 
-import json
-import os
 import unittest
 from unittest.mock import patch
 
-from campusflow import tickets
+from campusflow.tickets import (
+    calculate_priority,
+    create_ticket,
+    list_tickets,
+    validate_affected_users,
+    validate_category,
+    validate_title,
+    validate_urgency,
+    view_ticket,
+)
 
 
-class TestCreateTicket(unittest.TestCase):
+class TestTicketValidation(unittest.TestCase):
+    @patch("builtins.input", side_effect=["", "  Internet is down  "])
+    @patch("builtins.print")
+    def test_validate_title_retries_empty_input(
+        self, mock_print, mock_input
+    ):
+        result = validate_title()
 
-    def setUp(self):
-        self.test_file = "test_tickets.json"
-        self.original_filename = tickets.FILENAME if hasattr(
-            tickets, "FILENAME"
-        ) else None
+        self.assertEqual(result, "Internet is down")
+        self.assertEqual(mock_input.call_count, 2)
+
+    @patch("builtins.input", side_effect=["invalid", "network"])
+    @patch("builtins.print")
+    def test_validate_category_retries_invalid_input(
+        self, mock_print, mock_input
+    ):
+        result = validate_category()
+
+        self.assertEqual(result, "Network")
+        self.assertEqual(mock_input.call_count, 2)
+
+    @patch("builtins.input", side_effect=["urgent", "HIGH"])
+    @patch("builtins.print")
+    def test_validate_urgency_normalizes_case(
+        self, mock_print, mock_input
+    ):
+        result = validate_urgency()
+
+        self.assertEqual(result, "high")
+        self.assertEqual(mock_input.call_count, 2)
+
+    @patch("builtins.input", side_effect=["0", "-2", "abc", "5"])
+    @patch("builtins.print")
+    def test_validate_affected_users_requires_positive_integer(
+        self, mock_print, mock_input
+    ):
+        result = validate_affected_users()
+
+        self.assertEqual(result, 5)
+        self.assertEqual(mock_input.call_count, 4)
+
+
+class TestPriorityCalculation(unittest.TestCase):
+    def test_high_urgency_and_many_users_is_critical(self):
+        self.assertEqual(calculate_priority("high", 12), "critical")
+
+    def test_high_urgency_with_few_users_is_high(self):
+        self.assertEqual(calculate_priority("high", 2), "high")
+
+    def test_medium_urgency_is_at_least_medium(self):
+        self.assertEqual(calculate_priority("medium", 1), "medium")
+
+    def test_low_urgency_with_many_users_is_medium(self):
+        self.assertEqual(calculate_priority("low", 4), "medium")
+
+    def test_low_urgency_with_one_user_is_low(self):
+        self.assertEqual(calculate_priority("low", 1), "low")
+
+
+class TestTicketOperations(unittest.TestCase):
+    @patch(
+        "campusflow.tickets.validate_title",
+        return_value="Internet is down",
+    )
+    @patch("campusflow.tickets.validate_category", return_value="Network")
+    @patch("campusflow.tickets.validate_urgency", return_value="high")
+    @patch("campusflow.tickets.validate_affected_users", return_value=12)
+    def test_create_ticket_adds_ticket_to_list(
+        self, mock_users, mock_urgency, mock_category, mock_title
+    ):
+        tickets = []
+
+        ticket = create_ticket(tickets)
+
+        self.assertEqual(ticket["id"], "T001")
+        self.assertEqual(ticket["title"], "Internet is down")
+        self.assertEqual(ticket["category"], "Network")
+        self.assertEqual(ticket["urgency"], "high")
+        self.assertEqual(ticket["affected_users"], 12)
+        self.assertEqual(ticket["priority"], "critical")
+        self.assertEqual(ticket["status"], "open")
+        self.assertIsNone(ticket["assigned_to"])
+        self.assertEqual(len(tickets), 1)
+        self.assertIs(tickets[0], ticket)
+
+    @patch(
+        "campusflow.tickets.validate_title",
+        return_value="Broken keyboard",
+    )
+    @patch("campusflow.tickets.validate_category", return_value="Hardware")
+    @patch("campusflow.tickets.validate_urgency", return_value="low")
+    @patch("campusflow.tickets.validate_affected_users", return_value=1)
+    def test_create_ticket_generates_next_id(
+        self, mock_users, mock_urgency, mock_category, mock_title
+    ):
+        tickets = [{"id": "T007"}]
+
+        ticket = create_ticket(tickets)
+
+        self.assertEqual(ticket["id"], "T008")
 
     
-        self.filename_patcher = patch.object(
-            tickets, "FILENAME", self.test_file, create=True
-        )
-        self.filename_patcher.start()
-
-        if os.path.exists(self.test_file):
-            os.remove(self.test_file)
-
-    def tearDown(self):
-        self.filename_patcher.stop()
-
-        if os.path.exists(self.test_file):
-            os.remove(self.test_file)
-
-    @patch("builtins.input", side_effect=[
-        "Campus Wi-Fi is down", "Network", "high", "15"
-    ])
-    def test_create_ticket_success(self, mock_input):
-        ticket = tickets.create_ticket()
-
-        self.assertEqual(ticket["ID"], "T001")
-        self.assertEqual(ticket["Title"], "Campus Wi-Fi is down")
-        self.assertEqual(ticket["Category"], "Network")
-        self.assertEqual(ticket["Urgency"], "high")
-        self.assertEqual(ticket["Affected_users"], 15)
-        self.assertEqual(ticket["Priority"], "critical")
-        self.assertEqual(ticket["Status"], "open")
-        self.assertIsNone(ticket["Assigned_to"])
-
-    @patch("builtins.input", side_effect=[
-        "", "Valid title", "Network", "high", "15"
-    ])
-    def test_create_ticket_retries_blank_title(self, mock_input):
-        ticket = tickets.create_ticket()
-
-        self.assertEqual(ticket["Title"], "Valid title")
-        self.assertEqual(mock_input.call_count, 5)
-
-    @patch("builtins.input", side_effect=[
-        "Laptop issue", "InvalidCategory", "Hardware", "medium", "5"
-    ])
-    def test_create_ticket_retries_invalid_category(self, mock_input):
-        ticket = tickets.create_ticket()
-
-        self.assertEqual(ticket["Category"], "Hardware")
-        self.assertEqual(mock_input.call_count, 5)
-
-    @patch("builtins.input", side_effect=[
-        "Software issue", "Software", "urgent", "low", "2"
-    ])
-    def test_create_ticket_retries_invalid_urgency(self, mock_input):
-        ticket = tickets.create_ticket()
-
-        self.assertEqual(ticket["Urgency"], "low")
-        self.assertEqual(mock_input.call_count, 5)
-
-    @patch("builtins.input", side_effect=[
-        "Broken laptop", "Hardware", "high", "0", "4"
-    ])
-    def test_create_ticket_retries_invalid_affected_users(self, mock_input):
-        ticket = tickets.create_ticket()
-
-        self.assertEqual(ticket["Affected_users"], 4)
-        self.assertEqual(mock_input.call_count, 5)
-
-    @patch("builtins.input", side_effect=[
-        "Network problem", "Network", "medium", "3"
-    ])
-    def test_create_ticket_saves_to_json(self, mock_input):
-        ticket = tickets.create_ticket()
-
-        with open(self.test_file, "r", encoding="utf-8") as file:
-            saved_tickets = json.load(file)
-
-        self.assertEqual(len(saved_tickets), 1)
-        self.assertEqual(saved_tickets[0]["ID"], ticket["ID"])
-
-    @patch("builtins.input", side_effect=[
-        "First issue", "Software", "low", "1",
-        "Second issue", "Hardware", "high", "10"
-    ])
-    def test_create_ticket_generates_unique_ids(self, mock_input):
-        first = tickets.create_ticket()
-        second = tickets.create_ticket()
-
-        self.assertEqual(first["ID"], "T001")
-        self.assertEqual(second["ID"], "T002")
-
-
-class TestListTickets(unittest.TestCase):
-
-    def setUp(self):
-        self.test_file = "test_tickets.json"
-        self.filename_patcher = patch.object(
-            tickets, "FILENAME", self.test_file, create=True
-        )
-        self.filename_patcher.start()
-
-        self.sample_tickets = [
-            {
-                "ID": "T001",
-                "Title": "Wi-Fi issue",
-                "Category": "Network",
-                "Urgency": "high",
-                "Affected_users": 15,
-                "Priority": "critical",
-                "Status": "open",
-                "Assigned_to": None,
-            }
-        ]
-
-    def tearDown(self):
-        self.filename_patcher.stop()
-
-        if os.path.exists(self.test_file):
-            os.remove(self.test_file)
-
-    @patch("builtins.print")
-    def test_list_tickets_displays_saved_ticket(self, mock_print):
-        with open(self.test_file, "w", encoding="utf-8") as file:
-            json.dump(self.sample_tickets, file)
-
-        tickets.list_tickets()
-
-        printed_text = " ".join(
-        str(arg)
-        for call in mock_print.call_args_list
-        for arg in call.args
-    )
-        self.assertIn("Wi-Fi issue", printed_text)
-        self.assertIn("T001", printed_text)
-
-    @patch("builtins.print")
-    def test_list_tickets_when_file_missing(self, mock_print):
-        tickets.list_tickets()
-
-        mock_print.assert_any_call("No tickets found.")
-
-    @patch("builtins.print")
-    def test_list_tickets_displays_multiple_tickets(self, mock_print):
-        second_ticket = dict(self.sample_tickets[0])
-        second_ticket["ID"] = "T002"
-        second_ticket["Title"] = "Laptop issue"
-
-        with open(self.test_file, "w", encoding="utf-8") as file:
-            json.dump(self.sample_tickets + [second_ticket], file)
-
-        tickets.list_tickets()
-
-        printed_text = " ".join(
-        str(arg)
-        for call in mock_print.call_args_list
-        for arg in call.args
-    )
-        self.assertIn("Wi-Fi issue", printed_text)
-        self.assertIn("Laptop issue", printed_text)
-
-
-class TestViewTicket(unittest.TestCase):
-
-    def setUp(self):
-        self.test_file = "test_tickets.json"
-        self.filename_patcher = patch.object(
-            tickets, "FILENAME", self.test_file, create=True
-        )
-        self.filename_patcher.start()
-
-        self.sample_ticket = {
-            "ID": "T001",
-            "Title": "Wi-Fi issue",
-            "Category": "Network",
-            "Urgency": "high",
-            "Affected_users": 15,
-            "Priority": "critical",
-            "Status": "open",
-            "Assigned_to": None,
+@patch("builtins.print")
+def test_list_tickets_displays_ticket(self, mock_print):
+    tickets = [
+        {
+            "id": "T001",
+            "title": "Internet is down",
+            "priority": "critical",
+            "status": "open",
         }
+    ]
 
-        with open(self.test_file, "w", encoding="utf-8") as file:
-            json.dump([self.sample_ticket], file)
+    list_tickets(tickets)
 
-    def tearDown(self):
-        self.filename_patcher.stop()
-
-        if os.path.exists(self.test_file):
-            os.remove(self.test_file)
-
-    @patch("builtins.print")
-    @patch("builtins.input", return_value="T001")
-    def test_view_ticket_displays_existing_ticket(
-        self, mock_input, mock_print
-    ):
-        tickets.view_ticket()
-
-        printed_text = " ".join(
-        str(arg)
+    output = " ".join(
+        str(call.args[0]) if call.args else ""
         for call in mock_print.call_args_list
-        for arg in call.args
     )
-        self.assertIn("Wi-Fi issue", printed_text)
-        self.assertIn("T001", printed_text)
+
+    self.assertIn("T001", output)
+    self.assertIn("Internet is down", output)
 
     @patch("builtins.print")
-    @patch("builtins.input", return_value="T999")
-    def test_view_ticket_displays_not_found(
-        self, mock_input, mock_print
-    ):
-        tickets.view_ticket()
+    def test_list_tickets_handles_empty_list(self, mock_print):
+        list_tickets([])
 
-        mock_print.assert_any_call("Ticket not found.")
+        mock_print.assert_called_once_with("No tickets found.")
 
-    @patch("builtins.print")
     @patch("builtins.input", return_value="t001")
-    def test_view_ticket_accepts_lowercase_id(
-        self, mock_input, mock_print
+    @patch("builtins.print")
+    def test_view_ticket_finds_id_case_insensitively(
+        self, mock_print, mock_input
     ):
-        tickets.view_ticket()
+        tickets = [{"id": "T001", "title": "Internet is down"}]
 
-        printed_text = " ".join(
-        str(arg)
-        for call in mock_print.call_args_list
-        for arg in call.args
-    )
-        self.assertIn("Wi-Fi issue", printed_text)
+        view_ticket(tickets)
+
+        output = " ".join(
+            str(call.args[0]) for call in mock_print.call_args_list
+        )
+        self.assertIn("Internet is down", output)
+
+    @patch("builtins.input", return_value="T999")
+    @patch("builtins.print")
+    def test_view_ticket_reports_missing_ticket(
+        self, mock_print, mock_input
+    ):
+        view_ticket([])
+
+        mock_print.assert_called_once_with("Ticket not found.")
 
 
 if __name__ == "__main__":

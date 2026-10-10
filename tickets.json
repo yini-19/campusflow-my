@@ -1,42 +1,12 @@
 [
     {
-        "ID": "T001",
-        "Title": "First issue",
-        "Category": "Software",
-        "Urgency": "low",
-        "Affected_users": 1,
-        "Priority": "low",
-        "Status": "open",
-        "Assigned_to": null
-    },
-    {
-        "ID": "T002",
-        "Title": "Second issue",
-        "Category": "Hardware",
-        "Urgency": "high",
-        "Affected_users": 10,
-        "Priority": "critical",
-        "Status": "open",
-        "Assigned_to": null
-    },
-    {
-        "ID": "T003",
-        "Title": "Network problem",
-        "Category": "Network",
-        "Urgency": "medium",
-        "Affected_users": 3,
-        "Priority": "medium",
-        "Status": "open",
-        "Assigned_to": null
-    },
-    {
-        "ID": "T004",
-        "Title": "Campus Wi-Fi is down",
-        "Category": "Network",
-        "Urgency": "high",
-        "Affected_users": 15,
-        "Priority": "critical",
-        "Status": "open",
-        "Assigned_to": null
+        "id": "T001",
+        "title": "Charger",
+        "category": "Other",
+        "urgency": "low",
+        "affected_users": 3,
+        "priority": "medium",
+        "status": "in_progress",
+        "assigned_to": "Kings"
     }
 ]
