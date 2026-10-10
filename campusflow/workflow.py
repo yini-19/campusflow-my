@@ -75,41 +75,6 @@ def change_status(
 
     raise ValueError(f"Ticket '{ticket_id}' not found")
 
-
-def reopen_ticket(
-    tickets: list[dict],
-    ticket_id: str,
-) -> dict:
-    for ticket in tickets:
-        if ticket["id"] == ticket_id:
-            if ticket["status"] != "resolved":
-                raise ValueError(
-                    "Only resolved tickets can be reopened"
-                )
-
-            ticket["status"] = "open"
-            return ticket
-
-    raise ValueError(f"Ticket '{ticket_id}' not found")
-
-
-def get_ticket(
-    tickets: list[dict],
-    ticket_id: str,
-) -> dict:
-    for ticket in tickets:
-        if ticket["id"] == ticket_id:
-            return ticket
-
-    raise ValueError(f"Ticket '{ticket_id}' not found")
-
-
-def list_tickets(
-    tickets: list[dict],
-) -> list[dict]:
-    return tickets
-
-
 def get_work_queue(
     tickets: list[dict],
 ) -> list[dict]:
@@ -133,3 +98,19 @@ def get_work_queue(
             int(ticket["id"][1:]),
         ),
     )
+
+def reopen_ticket(
+    tickets: list[dict],
+    ticket_id: str,
+) -> dict:
+    for ticket in tickets:
+        if ticket["id"] == ticket_id:
+            if ticket["status"] != "resolved":
+                raise ValueError(
+                    "Only resolved tickets can be reopened"
+                )
+
+            ticket["status"] = "open"
+            return ticket
+
+    raise ValueError(f"Ticket '{ticket_id}' not found")
