@@ -1,3 +1,5 @@
-.venv
-*.pyc
+venv/
 __pycache__/
+*.pyc
+.env
+data/tickets.json
